@@ -1,0 +1,54 @@
+# ============================================================
+# GitHub Actions: Preprocessing Otomatis (Kriteria 1 - Advance)
+# ------------------------------------------------------------
+# Workflow ini otomatis menjalankan automate_JonathanBenedictSirait.py setiap
+# kali ada push ke branch 'main', lalu meng-commit ulang dataset
+# hasil preprocessing yang terbaru ke repository.
+# ============================================================
+
+name: Preprocessing Otomatis Credit Scoring
+
+# Kapan workflow ini dijalankan (trigger):
+on:
+  push:
+    branches: [ main ]          # setiap push ke main
+  workflow_dispatch:            # bisa juga dijalankan manual dari tab Actions
+
+jobs:
+  preprocessing:
+    runs-on: ubuntu-latest      # server virtual gratis dari GitHub
+
+    steps:
+      # 1) Ambil (checkout) isi repository ke server
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2) Siapkan Python versi 3.12.7 sesuai rekomendasi Dicoding
+      - name: Set up Python 3.12.7
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.7"
+
+      # 3) Install library yang dibutuhkan
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy scikit-learn
+
+      # 4) Jalankan script preprocessing otomatis
+      - name: Run automate preprocessing
+        run: |
+          cd preprocessing
+          python automate_JonathanBenedictSirait.py \
+            --input ../namadataset_raw/credit_scoring_raw.csv \
+            --output credit_scoring_preprocessing
+
+      # 5) Commit & push dataset hasil preprocessing yang terbaru
+      - name: Commit hasil preprocessing
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git add preprocessing/credit_scoring_preprocessing/
+          # Commit hanya jika ada perubahan (agar tidak error saat data sama)
+          git diff --staged --quiet || git commit -m "CI: update dataset hasil preprocessing [skip ci]"
+          git push
